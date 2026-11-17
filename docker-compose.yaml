@@ -2,23 +2,24 @@ services:
   broker:
     image: eclipse-mosquitto:2
     restart: unless-stopped
-    ports:
-      - "1883:1883"
     volumes:
       - ./broker/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - backend
+
   simulator:
     build: ./simulator
+    restart: unless-stopped
     environment:
       BROKER_HOST: broker
-    depends_on: 
+    depends_on:
       - broker
-    restart: unless-stopped
+    networks:
+      - backend
 
   influxdb:
     image: influxdb:2
     restart: unless-stopped
-    ports:
-      - "8086:8086"
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME}
@@ -28,6 +29,9 @@ services:
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
     volumes:
       - influxdb-data:/var/lib/influxdb2
+    networks:
+      - backend
+
   collector:
     build: ./collector
     restart: unless-stopped
@@ -40,14 +44,16 @@ services:
     depends_on:
       - broker
       - influxdb
+    networks:
+      - backend
+
   grafana:
     image: grafana/grafana:12.4.15
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_SERVER_ROOT_URL: http://localhost/
       INFLUXDB_ORG: ${INFLUXDB_ORG}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
@@ -57,11 +63,14 @@ services:
       - ./grafana/dashboards:/etc/grafana/dashboards:ro
     depends_on:
       - influxdb
+    networks:
+      - frontend
+      - backend
+
   predictor:
     build: ./predictor
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--root-path", "/ml"]
     environment:
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
@@ -75,7 +84,27 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - frontend
+      - backend
 
+  proxy:
+    image: nginx:1.30-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - grafana
+      - predictor
+    networks:
+      - frontend
+
+networks:
+  frontend:
+  backend:
+    internal: true
 
 volumes:
   influxdb-data:
