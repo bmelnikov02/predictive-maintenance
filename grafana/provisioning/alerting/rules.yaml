@@ -49,3 +49,46 @@ groups:
         annotations:
           summary: "Перегрев {{ $labels.machine_id }}: {{ humanize $values.B.Value }} °C"
           description: "Температура выше 85 °C дольше 20 секунд. Высокий риск поломки, требуется остановка и обслуживание."
+      
+      - uid: failure-predicted
+        title: "Прогноз: поломка в ближайшую минуту"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: influxdb
+            model:
+              refId: A
+              query: |
+                from(bucket: "sensors")
+                  |> range(start: -2m)
+                  |> filter(fn: (r) => r._measurement == "predictions" and r._field == "failure_probability")
+                  |> keep(columns: ["_time", "_value", "machine_id"])
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - 0.7
+        for: 10s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "Прогноз: {{ $labels.machine_id }} сломается в течение минуты (вероятность {{ humanizePercentage $values.B.Value }})"
+          description: "Модель предсказания обнаружила признаки скорой поломки. Рекомендуется плановая остановка станка для обслуживания."
