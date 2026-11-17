@@ -1,0 +1,51 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: factory-alerts
+    folder: Завод
+    interval: 10s
+    rules:
+      - uid: machine-overheat
+        title: Перегрев станка
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: influxdb
+            model:
+              refId: A
+              query: |
+                from(bucket: "sensors")
+                  |> range(start: -2m)
+                  |> filter(fn: (r) => r._measurement == "sensors" and r._field == "temperature")
+                  |> aggregateWindow(every: 10s, fn: mean, createEmpty: false)
+                  |> keep(columns: ["_time", "_value", "machine_id"])
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - 85
+        for: 20s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "Перегрев {{ $labels.machine_id }}: {{ humanize $values.B.Value }} °C"
+          description: "Температура выше 85 °C дольше 20 секунд. Высокий риск поломки, требуется остановка и обслуживание."
