@@ -40,8 +40,24 @@ services:
     depends_on:
       - broker
       - influxdb
-
+  grafana:
+    image: grafana/grafana:12.4.15
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - influxdb
 
 
 volumes:
   influxdb-data:
+  grafana-data:
