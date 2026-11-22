@@ -9,6 +9,7 @@ services:
 
   simulator:
     build: ./simulator
+    image: ${DOCKERHUB_USER}/pm-simulator:${TAG:-latest}
     restart: unless-stopped
     environment:
       BROKER_HOST: broker
@@ -34,6 +35,7 @@ services:
 
   collector:
     build: ./collector
+    image: ${DOCKERHUB_USER}/pm-collector:${TAG:-latest}
     restart: unless-stopped
     environment:
       BROKER_HOST: broker
@@ -69,6 +71,7 @@ services:
 
   predictor:
     build: ./predictor
+    image: ${DOCKERHUB_USER}/pm-predictor:${TAG:-latest}
     restart: unless-stopped
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--root-path", "/ml"]
     environment:
