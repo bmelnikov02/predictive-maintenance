@@ -47,16 +47,18 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+                stage('Deploy') {
             steps {
                 withCredentials([file(credentialsId: 'pm-env', variable: 'ENV_FILE')]) {
                     sh '''
+                        set +x
                         sed 's/\\r$//' "$ENV_FILE" > deploy.env
                         set -a
                         . ./deploy.env
                         set +a
                         rm -f deploy.env
                         export TAG="$BUILD_NUMBER"
+                        echo "Деплой стека $STACK, версия $TAG"
                         docker stack deploy --detach=false -c docker-stack.yml "$STACK"
                     '''
                 }

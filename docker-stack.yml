@@ -129,16 +129,22 @@ services:
 
 configs:
   mosquitto_conf:
+    name: pm_mosquitto_conf_${TAG}
     file: ./broker/mosquitto.conf
   nginx_conf:
+    name: pm_nginx_conf_${TAG}
     file: ./proxy/nginx.conf
   grafana_datasource:
+    name: pm_grafana_datasource_${TAG}
     file: ./grafana/provisioning/datasources/influxdb.yaml
   grafana_dashboards_provider:
+    name: pm_grafana_dashboards_provider_${TAG}
     file: ./grafana/provisioning/dashboards/dashboards.yaml
   grafana_alert_rules:
+    name: pm_grafana_alert_rules_${TAG}
     file: ./grafana/provisioning/alerting/rules.yaml
   grafana_dashboard_factory:
+    name: pm_grafana_dashboard_factory_${TAG}
     file: ./grafana/dashboards/factory.json
 
 networks:
