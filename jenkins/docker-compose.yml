@@ -1,0 +1,20 @@
+services:
+  jenkins:
+    build: .
+    image: pm-jenkins
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      DOCKER_HOST: tcp://manager:2375
+    volumes:
+      - jenkins-home:/var/jenkins_home
+    networks:
+      - swarm-lab
+
+networks:
+  swarm-lab:
+    external: true
+
+volumes:
+  jenkins-home:
